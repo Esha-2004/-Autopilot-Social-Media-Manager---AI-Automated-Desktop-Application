@@ -1,1 +1,1 @@
-# -Autopilot-Social-Media-Manager---AI-Automated-Desktop-Application
+# Autopilot-Social-Media-Manager-AI-Automated-Desktop-Application
