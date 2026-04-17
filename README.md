@@ -34,11 +34,17 @@ Saves approved posts as .txt files
 Simulates publishing via automation tools like Make.com / SocialChamp
 
 ⚙️ Key Features
+
 ✅ Fully autonomous multi-agent workflow
+
 ✅ AI-powered content generation using OpenRouter
+
 ✅ Built-in quality control with feedback loop
+
 ✅ Daily automation for 5 consecutive days
+
 ✅ Generates a total of 15 LinkedIn posts
+
 ✅ Scalable and adaptable for other brands
 
 📊 Project Details
