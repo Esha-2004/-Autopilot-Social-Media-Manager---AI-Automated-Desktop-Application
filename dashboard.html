@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>EAI Systems — Autopilot Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#07070e; --surface:#0e0e1a; --surface2:#14141f;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
+  --accent:#00ffa3; --accent2:#7b5cff; --accent3:#ff5f5f; --accent4:#ffb830;
+  --text:#eeeef5; --muted:#55556a;
+  --manager:#00cfff; --writer:#b08fff; --critic:#ff8c42; --scheduler:#3deba0;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,163,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,163,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:700px;height:400px;background:radial-gradient(ellipse,rgba(0,255,163,.06) 0%,transparent 70%);pointer-events:none;z-index:0;}
+.wrap{max-width:1020px;margin:0 auto;padding:1.5rem 1.25rem;position:relative;z-index:1;}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;}
+.logo{display:flex;align-items:center;gap:14px;}
+.logo-badge{width:42px;height:42px;background:var(--accent);border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:#000;}
+.logo-name{font-size:16px;font-weight:700;letter-spacing:-.02em;}
+.logo-sub{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+.status-pill{display:flex;align-items:center;gap:8px;background:rgba(0,255,163,.07);border:1px solid rgba(0,255,163,.18);padding:8px 16px;border-radius:99px;font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);transition:all .3s;}
+.status-pill.complete{background:rgba(0,255,163,.12);border-color:rgba(0,255,163,.35);}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--accent);}
+.pulse.live{animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.75);}}
+
+/* HERO */
+.hero{text-align:center;margin-bottom:1.5rem;}
+.hero-tag{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:.6rem;}
+.hero h1{font-size:clamp(1.6rem,4vw,2.6rem);font-weight:800;letter-spacing:-.04em;line-height:1.1;}
+.hero h1 em{color:var(--accent);font-style:normal;}
+.hero p{color:var(--muted);font-size:13px;margin-top:.5rem;font-family:'Space Mono',monospace;}
+
+/* DAY TABS */
+.day-row{display:flex;gap:8px;justify-content:center;margin-bottom:1.5rem;}
+.day-btn{width:52px;height:52px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-family:'Space Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;transition:all .25s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.day-btn .dn{font-size:14px;}
+.day-btn .dl{font-size:8px;letter-spacing:.05em;opacity:.6;}
+.day-btn.active{background:var(--accent);border-color:var(--accent);color:#000;transform:scale(1.08);box-shadow:0 0 20px rgba(0,255,163,.3);}
+.day-btn.done{background:rgba(0,255,163,.08);border-color:rgba(0,255,163,.25);color:var(--accent);}
+.day-btn.done:hover{background:rgba(0,255,163,.15);}
+.day-btn.locked{opacity:.28;cursor:not-allowed;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:1.1rem 1rem;text-align:center;}
+.stat-num{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;line-height:1;margin-bottom:5px;}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-family:'Space Mono',monospace;}
+
+/* PIPELINE */
+.pipeline{display:grid;gap:6px;margin-bottom:1.25rem;}
+.agent-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1.25rem;display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:center;position:relative;overflow:hidden;transition:border-color .3s,background .3s;}
+.agent-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac,var(--muted));opacity:.3;transition:opacity .3s;}
+.agent-card.active{border-color:color-mix(in srgb,var(--ac) 40%,transparent);background:var(--surface2);}
+.agent-card.active::before{opacity:1;}
+.agent-card.done{border-color:rgba(0,255,163,.18);}
+.agent-card.done::before{background:var(--accent);opacity:.8;}
+.agent-card.rejected::before{background:var(--accent3);opacity:1;}
+.agent-card.active::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--ac) 4%,transparent) 50%,transparent 100%);animation:shimmer 2s infinite;}
+@keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+.agent-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.03);border:1px solid var(--border);flex-shrink:0;transition:all .3s;}
+.agent-card.active .agent-icon{background:color-mix(in srgb,var(--ac) 12%,transparent);border-color:color-mix(in srgb,var(--ac) 25%,transparent);}
+.agent-step{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;}
+.agent-name{font-size:15px;font-weight:700;margin-bottom:3px;transition:color .3s;letter-spacing:-.02em;}
+.agent-card.active .agent-name{color:var(--ac);}
+.agent-desc{font-size:12px;color:var(--muted);line-height:1.5;font-family:'Space Mono',monospace;}
+.agent-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;}
+.pill{font-family:'Space Mono',monospace;font-size:10px;padding:4px 11px;border-radius:99px;letter-spacing:.06em;font-weight:700;border:1px solid;}
+.pill.waiting{background:rgba(255,255,255,.03);color:var(--muted);border-color:var(--border);}
+.pill.active{background:color-mix(in srgb,var(--ac) 12%,transparent);color:var(--ac);border-color:color-mix(in srgb,var(--ac) 28%,transparent);animation:blink 1.4s infinite;}
+.pill.done{background:rgba(0,255,163,.08);color:var(--accent);border-color:rgba(0,255,163,.22);}
+.pill.rejected{background:rgba(255,95,95,.08);color:var(--accent3);border-color:rgba(255,95,95,.22);}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.55;}}
+.progress{height:3px;background:var(--border);border-radius:99px;overflow:hidden;width:80px;}
+.progress-fill{height:100%;border-radius:99px;background:var(--ac);transition:width .6s cubic-bezier(.4,0,.2,1);}
+.connector{display:flex;justify-content:center;align-items:center;height:14px;color:var(--border2);font-size:13px;}
+
+/* LOG */
+.log-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:1.25rem;}
+.log-header{padding:.8rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.log-title{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.log-dot{width:6px;height:6px;border-radius:50%;background:var(--accent3);animation:pulse 2s infinite;}
+.log-body{padding:1rem 1.25rem;font-family:'Space Mono',monospace;font-size:11px;line-height:2;max-height:240px;overflow-y:auto;color:#55556a;}
+.log-body::-webkit-scrollbar{width:3px;}
+.log-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+.log-line{display:block;}
+.log-line.success{color:var(--accent);}
+.log-line.error{color:var(--accent3);}
+.log-line.info{color:var(--accent2);}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:translateX(0);}}
+.log-line.new{animation:fadeIn .3s ease;}
+
+/* POSTS */
+.posts-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:1.25rem;}
+.posts-header{padding:.8rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.posts-title{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.posts-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2);}
+.posts-tabs{display:flex;gap:6px;}
+.tab-btn{font-family:'Space Mono',monospace;font-size:10px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;font-weight:700;}
+.tab-btn.active-tab{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+.tab-btn.has-posts{border-color:rgba(0,255,163,.2);color:var(--accent);}
+.tab-btn.has-posts.active-tab{background:var(--accent);border-color:var(--accent);color:#000;}
+.tab-btn:disabled{opacity:.25;cursor:not-allowed;}
+.posts-body{padding:1.25rem;min-height:160px;}
+.posts-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem;gap:.75rem;color:var(--muted);text-align:center;}
+.posts-empty .ei{font-size:2.5rem;opacity:.4;}
+.posts-empty p{font-family:'Space Mono',monospace;font-size:11px;line-height:1.7;}
+.posts-grid{display:grid;gap:1rem;}
+.post-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.post-card:hover{border-color:var(--border2);}
+.post-card-header{padding:.7rem 1rem;background:rgba(0,255,163,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.post-num{font-family:'Space Mono',monospace;font-size:10px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+.post-badge{font-family:'Space Mono',monospace;font-size:9px;padding:3px 9px;border-radius:99px;background:rgba(0,255,163,.08);color:var(--accent);border:1px solid rgba(0,255,163,.2);}
+.post-body{padding:1rem;font-size:13px;line-height:1.75;color:var(--text);white-space:pre-wrap;}
+.post-tags{color:var(--accent2);}
+
+/* COMPLETE */
+.complete-banner{background:linear-gradient(135deg,rgba(0,255,163,.08) 0%,rgba(123,92,255,.08) 100%);border:1px solid rgba(0,255,163,.2);border-radius:14px;padding:1.25rem 1.5rem;text-align:center;margin-bottom:1.25rem;display:none;}
+.complete-banner.show{display:block;}
+.complete-banner h2{font-size:1.3rem;font-weight:800;margin-bottom:.4rem;}
+.complete-banner p{font-size:13px;color:var(--muted);font-family:'Space Mono',monospace;}
+
+@media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr);}.agent-right{display:none;}header{flex-direction:column;gap:.75rem;}.posts-tabs{flex-wrap:wrap;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <div class="logo-badge">EAI</div>
+      <div>
+        <div class="logo-name">EAI Systems</div>
+        <div class="logo-sub">Autopilot LinkedIn Manager</div>
+      </div>
+    </div>
+    <div class="status-pill" id="statusPill">
+      <div class="pulse live" id="pulseDot"></div>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-tag">Multi-Agent AI System &mdash; Assignment 2</div>
+    <h1>LinkedIn on <em>Autopilot</em></h1>
+    <p>Manager &middot; Writer &middot; Critic &middot; Scheduler &mdash; powered by OpenRouter AI</p>
+  </div>
+
+  <div class="day-row">
+    <div class="day-btn locked" id="d1"><span class="dn">D1</span><span class="dl">DAY 1</span></div>
+    <div class="day-btn locked" id="d2"><span class="dn">D2</span><span class="dl">DAY 2</span></div>
+    <div class="day-btn locked" id="d3"><span class="dn">D3</span><span class="dl">DAY 3</span></div>
+    <div class="day-btn locked" id="d4"><span class="dn">D4</span><span class="dl">DAY 4</span></div>
+    <div class="day-btn locked" id="d5"><span class="dn">D5</span><span class="dl">DAY 5</span></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="stat-num" id="sd" style="color:var(--accent)">0</div><div class="stat-label">Days Done</div></div>
+    <div class="stat-card"><div class="stat-num" id="sp" style="color:var(--accent2)">0</div><div class="stat-label">Posts Created</div></div>
+    <div class="stat-card"><div class="stat-num" id="sa" style="color:var(--scheduler)">0</div><div class="stat-label">Approved</div></div>
+    <div class="stat-card"><div class="stat-num" id="sr" style="color:var(--accent4)">0</div><div class="stat-label">Retries</div></div>
+  </div>
+
+  <div class="pipeline">
+    <div class="agent-card" id="cm" style="--ac:var(--manager)">
+      <div class="agent-icon">&#128225;</div>
+      <div>
+        <div class="agent-step">Agent 01</div>
+        <div class="agent-name">Manager Agent</div>
+        <div class="agent-desc">Scans trending AI news via OpenRouter &mdash; finds top 3 topics for the day</div>
+      </div>
+      <div class="agent-right">
+        <span class="pill waiting" id="pm">WAITING</span>
+        <div class="progress"><div class="progress-fill" id="pgm" style="width:0%;--ac:var(--manager)"></div></div>
+      </div>
+    </div>
+    <div class="connector">&#8595;</div>
+    <div class="agent-card" id="cw" style="--ac:var(--writer)">
+      <div class="agent-icon">&#9997;&#65039;</div>
+      <div>
+        <div class="agent-step">Agent 02</div>
+        <div class="agent-name">Writer Agent</div>
+        <div class="agent-desc">Drafts 3 professional LinkedIn posts with brand-matched tone</div>
+      </div>
+      <div class="agent-right">
+        <span class="pill waiting" id="pw">WAITING</span>
+        <div class="progress"><div class="progress-fill" id="pgw" style="width:0%;--ac:var(--writer)"></div></div>
+      </div>
+    </div>
+    <div class="connector">&#8595;</div>
+    <div class="agent-card" id="cc" style="--ac:var(--critic)">
+      <div class="agent-icon">&#129488;</div>
+      <div>
+        <div class="agent-step">Agent 03</div>
+        <div class="agent-name">Critic Agent</div>
+        <div class="agent-desc">Reviews posts against EAI brand guidelines &mdash; rejects if not approved</div>
+      </div>
+      <div class="agent-right">
+        <span class="pill waiting" id="pc">WAITING</span>
+        <div class="progress"><div class="progress-fill" id="pgc" style="width:0%;--ac:var(--critic)"></div></div>
+      </div>
+    </div>
+    <div class="connector">&#8595;</div>
+    <div class="agent-card" id="cs" style="--ac:var(--scheduler)">
+      <div class="agent-icon">&#128197;</div>
+      <div>
+        <div class="agent-step">Step 04</div>
+        <div class="agent-name">Scheduler</div>
+        <div class="agent-desc">Saves approved posts &mdash; simulates Make.com / SocialChamp publishing</div>
+      </div>
+      <div class="agent-right">
+        <span class="pill waiting" id="ps">WAITING</span>
+        <div class="progress"><div class="progress-fill" id="pgs" style="width:0%;--ac:var(--scheduler)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="complete-banner" id="completeBanner">
+    <h2>&#127881; Campaign Complete!</h2>
+    <p>All 5 days finished &middot; Check your project folder for day_1 to day_5 txt files</p>
+  </div>
+
+  <div class="log-panel">
+    <div class="log-header">
+      <div class="log-title"><div class="log-dot"></div>Live System Log</div>
+      <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted)" id="ltime">--:--:--</span>
+    </div>
+    <div class="log-body" id="lb">
+      <span class="log-line">// Connecting to Python backend...</span>
+    </div>
+  </div>
+
+  <div class="posts-section">
+    <div class="posts-header">
+      <div class="posts-title"><div class="posts-dot"></div>Generated LinkedIn Posts</div>
+      <div class="posts-tabs">
+        <button class="tab-btn active-tab" id="tab1" onclick="showDay(1)">Day 1</button>
+        <button class="tab-btn" id="tab2" onclick="showDay(2)" disabled>Day 2</button>
+        <button class="tab-btn" id="tab3" onclick="showDay(3)" disabled>Day 3</button>
+        <button class="tab-btn" id="tab4" onclick="showDay(4)" disabled>Day 4</button>
+        <button class="tab-btn" id="tab5" onclick="showDay(5)" disabled>Day 5</button>
+      </div>
+    </div>
+    <div class="posts-body" id="postsBody">
+      <div class="posts-empty">
+        <div class="ei">&#128221;</div>
+        <p>Posts will appear here as each day completes...<br>Run main.py to start the campaign.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+var lastLog = 0;
+var dayPosts = {"1":[],"2":[],"3":[],"4":[],"5":[]};
+var activeDay = 1;
+
+var agentMap = {
+  manager:  ["cm","pm","pgm"],
+  writer:   ["cw","pw","pgw"],
+  critic:   ["cc","pc","pgc"],
+  scheduler:["cs","ps","pgs"]
+};
+var labels = {waiting:"WAITING",active:"RUNNING...",done:"DONE ✓",rejected:"REJECTED"};
+
+function setAgent(name, status, progress) {
+  var ids = agentMap[name];
+  var card = document.getElementById(ids[0]);
+  card.className = "agent-card" + (status==="active"?" active":status==="done"?" done":status==="rejected"?" rejected":"");
+  var pill = document.getElementById(ids[1]);
+  pill.className = "pill " + (status==="active"?"active":status);
+  pill.textContent = labels[status] || status.toUpperCase();
+  document.getElementById(ids[2]).style.width = progress + "%";
+}
+
+function showDay(d) {
+  activeDay = d;
+  for (var i = 1; i <= 5; i++) {
+    var t = document.getElementById("tab"+i);
+    t.classList.remove("active-tab");
+    if (i === d) t.classList.add("active-tab");
+  }
+  renderPosts(d);
+}
+
+function renderPosts(d) {
+  var body = document.getElementById("postsBody");
+  var posts = dayPosts[String(d)];
+  if (!posts || posts.length === 0) {
+    body.innerHTML = '<div class="posts-empty"><div class="ei">&#128221;</div><p>Day '+d+' posts haven\'t been generated yet.<br>Posts appear here automatically as each day completes.</p></div>';
+    return;
+  }
+  var html = '<div class="posts-grid">';
+  for (var i = 0; i < posts.length; i++) {
+    var formatted = posts[i].replace(/(#\w+)/g, '<span class="post-tags">$1</span>');
+    html += '<div class="post-card">'
+          + '<div class="post-card-header"><span class="post-num">POST '+(i+1)+' OF '+posts.length+'</span><span class="post-badge">&#10003; APPROVED</span></div>'
+          + '<div class="post-body">'+formatted+'</div>'
+          + '</div>';
+  }
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+function poll() {
+  fetch("state.json?t=" + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(s) {
+      var pill = document.getElementById("statusPill");
+      var txt  = document.getElementById("statusText");
+      var dot  = document.getElementById("pulseDot");
+      if (s.complete) {
+        txt.textContent = "✓ Campaign Complete!";
+        pill.classList.add("complete");
+        dot.classList.remove("live");
+        document.getElementById("completeBanner").classList.add("show");
+      } else if (s.running) {
+        txt.textContent = "Day " + s.currentDay + " / 5 — Running";
+      } else {
+        txt.textContent = "Ready to start";
+      }
+
+      Object.keys(s.agents).forEach(function(a) {
+        setAgent(a, s.agents[a].status, s.agents[a].progress);
+      });
+
+      document.getElementById("sd").textContent = s.stats.days;
+      document.getElementById("sp").textContent = s.stats.posts;
+      document.getElementById("sa").textContent = s.stats.approved;
+      document.getElementById("sr").textContent = s.stats.attempts;
+
+      for (var d = 1; d <= 5; d++) {
+        var btn = document.getElementById("d"+d);
+        var st = (s.dayStatus && s.dayStatus[String(d)]) || "locked";
+        btn.className = "day-btn " + st;
+        (function(day){ btn.onclick = (st==="done"||st==="active") ? function(){ showDay(day); } : null; })(d);
+      }
+
+      if (s.dayPosts) {
+        var updated = false;
+        for (var d = 1; d <= 5; d++) {
+          var inc = s.dayPosts[String(d)] || [];
+          if (inc.length > 0 && dayPosts[String(d)].length !== inc.length) {
+            dayPosts[String(d)] = inc;
+            updated = true;
+            var tab = document.getElementById("tab"+d);
+            tab.disabled = false;
+            tab.classList.add("has-posts");
+          }
+        }
+        if (updated) renderPosts(activeDay);
+      }
+
+      var lb = document.getElementById("lb");
+      if (s.logs && s.logs.length > lastLog) {
+        s.logs.slice(lastLog).forEach(function(msg) {
+          var sp = document.createElement("span");
+          var cls = msg.indexOf("✓") >= 0 || msg.indexOf("APPROVED") >= 0 ? "success"
+                  : msg.indexOf("✗") >= 0 || msg.indexOf("REJECTED") >= 0 ? "error"
+                  : (msg.indexOf("━━━") >= 0 || msg.indexOf("🎉") >= 0 || msg.indexOf("DAY") >= 0) ? "info" : "";
+          sp.className = "log-line new" + (cls ? " "+cls : "");
+          var t = new Date().toTimeString().slice(0,8);
+          sp.textContent = "["+t+"] " + msg;
+          lb.appendChild(document.createElement("br"));
+          lb.appendChild(sp);
+          document.getElementById("ltime").textContent = t;
+        });
+        lb.scrollTop = lb.scrollHeight;
+        lastLog = s.logs.length;
+      }
+    })
+    .catch(function(){})
+    .finally(function(){ setTimeout(poll, 800); });
+}
+poll();
+</script>
+</body>
+</html>
